@@ -41,6 +41,7 @@ import optparse
 import logging
 import textwrap
 import fnmatch
+import socket
 
 # Note about Tree.path/Blob.path: *real* Git trees and blobs don't
 # actually provide path information, but the git-python bindings, as a
@@ -457,7 +458,23 @@ def upload_blob(blob, ftp, quiet=False):
         ftp.delete(blob.path)
     except ftplib.error_perm:
         pass
-    ftp.storbinary('STOR ' + blob.path, blob.data_stream)
+
+    attempts = 0
+
+    while True:
+        try:
+            ftp.storbinary('STOR ' + blob.path, blob.data_stream)
+            break
+        except socket.error, e:
+            attempts += 1
+            if attempts >= 3:
+                logging.warning('Failed to upload ' + blob.path)
+                raise
+            else:
+                logging.warning('Retrying ' + blob.path)
+    
+
+
     try:
         ftp.voidcmd('SITE CHMOD ' + format_mode(blob.mode) + ' ' + blob.path)
     except ftplib.error_perm:
