@@ -176,7 +176,9 @@ def main():
     if oldtree.hexsha == tree.hexsha:
         logging.info('Nothing to do!')
     else:
+        ftp.storbinary('STOR .maintenance', cStringIO.StringIO('<?php $upgrading = time(); ?>'))
         upload_diff(repo, oldtree, tree, ftp, [base], patterns)
+        ftp.delete('.maintenance')
 
     ftp.storbinary('STOR git-rev.txt', cStringIO.StringIO(commit.hexsha))
     ftp.quit()
